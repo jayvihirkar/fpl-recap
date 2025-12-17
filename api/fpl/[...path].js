@@ -1,30 +1,41 @@
 export default async function handler(req, res) {
-    // 1. Get the path from the URL (e.g. ['bootstrap-static'] or ['entry', '123'])
-    const { path } = req.query;
-    const endpoint = path.join('/'); 
-    
-    // 2. Construct the real FPL URL
-    const fplUrl = `https://fantasy.premierleague.com/api/${endpoint}/`;
-    
-    try {
-      // 3. Fetch data from FPL with a browser-like User-Agent (helps avoid blocks)
-      const response = await fetch(fplUrl, {
-          headers: {
-              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
-          }
-      });
-      
-      if (!response.ok) {
-          throw new Error(`FPL API responded with ${response.status}`);
-      }
+  const { path } = req.query;
   
-      const data = await response.json();
-      
-      // 4. Return the clean JSON to your frontend
-      res.status(200).json(data);
-      
-    } catch (error) {
-      console.error("Proxy Error:", error);
-      res.status(500).json({ error: "Failed to fetch data from FPL" });
-    }
+  // Safety check: ensure path exists
+  if (!path) {
+    return res.status(400).json({ error: "Path missing" });
   }
+
+  // Combine the path array into a string (e.g., "entry/123/history")
+  const endpoint = Array.isArray(path) ? path.join('/') : path;
+  const fplUrl = `https://fantasy.premierleague.com/api/${endpoint}/`;
+
+  console.log(`Fetching: ${fplUrl}`); // This will show up in Vercel Logs
+
+  try {
+    const response = await fetch(fplUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Referer': 'https://fantasy.premierleague.com/',
+        'Origin': 'https://fantasy.premierleague.com'
+      }
+    });
+
+    if (!response.ok) {
+      // Pass the error detail back to the frontend
+      return res.status(response.status).json({ error: `FPL Error: ${response.statusText}` });
+    }
+
+    const data = await response.json();
+    
+    // Cache the response for 60 seconds to make it faster
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
+    return res.status(200).json(data);
+
+  } catch (error) {
+    console.error("Proxy Error:", error);
+    return res.status(500).json({ error: "Server Error", details: error.message });
+  }
+}
