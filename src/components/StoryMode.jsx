@@ -3,224 +3,307 @@ import Stories from 'react-insta-stories';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import CountUp from './CountUp';
-import Background from './Background'; // Ensure you created this!
 
 const StoryMode = ({ data }) => {
   const navigate = useNavigate();
 
-  // --- iOS ANIMATION PHYSICS ---
-  const springTransition = { type: "spring", stiffness: 90, damping: 15 };
-  
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 40, scale: 0.95 },
-    visible: { opacity: 1, y: 0, scale: 1, transition: { ...springTransition, staggerChildren: 0.1 } }
+  // --- THEME & ANIMATION CONSTANTS ---
+  const COLORS = {
+    bg: '#121212', // Deep Chess.com style dark
+    card: '#1a1a1a', // Slightly lighter card bg
+    text: '#ffffff',
+    green: '#4ade80', // Neon green for good
+    red: '#f87171',   // Soft red for bad
+    orange: '#fb923c', // Warning orange
+    gold: '#facc15'    // Hero gold
   };
 
-  // --- REUSABLE CARD WRAPPER ---
-  const SlideWrapper = ({ children, theme }) => (
-    <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden font-sans text-white">
-      <Background theme={theme} />
-      <motion.div 
-        className="relative z-10 w-full h-full flex flex-col items-center justify-center p-6"
-        initial="hidden" animate="visible" variants={fadeInUp}
-      >
-        {children}
-      </motion.div>
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+  };
+
+  const scaleIn = {
+    hidden: { scale: 0.9, opacity: 0 },
+    visible: { scale: 1, opacity: 1, transition: { type: "spring", stiffness: 100 } }
+  };
+
+  // --- REUSABLE COMPONENTS ---
+  
+  // The base container for every slide (Mobile-first, centered)
+  const Slide = ({ children, className = "" }) => (
+    <div className={`w-full h-full flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans ${className}`} style={{ background: COLORS.bg, color: COLORS.text }}>
+      {/* Subtle Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+      {children}
     </div>
   );
 
-  // --- STORIES ---
+  // A "Glass" Card container
+  const Card = ({ children, className = "" }) => (
+    <motion.div 
+      variants={scaleIn}
+      className={`bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 w-full max-w-sm shadow-2xl relative overflow-hidden ${className}`}
+    >
+      {children}
+    </motion.div>
+  );
+
+  // Section Label (e.g. "ACT 1")
+  const Label = ({ text, color = "text-gray-500" }) => (
+    <motion.p variants={fadeInUp} className={`text-xs font-bold uppercase tracking-[0.3em] mb-4 ${color}`}>
+      {text}
+    </motion.p>
+  );
+
+  // --- STORIES CONFIGURATION ---
   const stories = [
 
-    // 1. INTRO
+    // 1. INTRO: "WHAT DID YOU COOK?"
     {
       content: () => (
-        <SlideWrapper theme="default">
-          <motion.div variants={fadeInUp} className="text-6xl mb-6 drop-shadow-lg">🧑‍🍳</motion.div>
-          <motion.h1 variants={fadeInUp} className="text-4xl font-bold tracking-tight text-center mb-2">
-            Let's see what <br/> you cooked.
-          </motion.h1>
-          <motion.p variants={fadeInUp} className="text-white/60 font-medium tracking-wide uppercase text-sm bg-white/10 px-4 py-1 rounded-full backdrop-blur-md">
-            Gameweek {data.meta.gw}
-          </motion.p>
-        </SlideWrapper>
+        <Slide>
+          <motion.div initial="hidden" animate="visible" className="text-center z-10">
+            <motion.div variants={scaleIn} className="text-8xl mb-6">🧑‍🍳</motion.div>
+            <Label text={`Gameweek ${data.meta.gw}`} />
+            <motion.h1 variants={fadeInUp} className="text-5xl font-black uppercase leading-tight tracking-tight mb-4">
+              Let's see what <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">you cooked.</span>
+            </motion.h1>
+          </motion.div>
+        </Slide>
       )
     },
 
-    // 2. SNAPSHOT (Apple Wallet Style)
+    // 2. SNAPSHOT (Points & Rank)
     {
       content: () => (
-        <SlideWrapper theme={data.meta.rankArrow === 'green' ? 'green' : 'red'}>
-          <motion.div variants={fadeInUp} className="w-full max-w-xs bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2rem] p-8 shadow-2xl flex flex-col items-center">
-            <p className="text-white/60 font-semibold uppercase tracking-wider text-xs mb-4">GW Performance</p>
+        <Slide>
+          <motion.div initial="hidden" animate="visible" className="w-full max-w-sm z-10">
+            <Label text="Snapshot" color="text-green-400" />
             
-            <div className="text-[7rem] font-bold leading-none tracking-tighter mb-4 drop-shadow-2xl">
-              <CountUp to={data.meta.points} />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 w-full pt-6 border-t border-white/10">
-              <div className="text-center">
-                <p className="text-xs text-white/50 font-bold uppercase">Total</p>
-                <p className="text-2xl font-bold tracking-tight"><CountUp to={data.meta.totalPoints} /></p>
+            <Card className="mb-4 text-center py-10">
+              <p className="text-sm font-bold uppercase text-gray-500 mb-2">Your Score</p>
+              <div className="text-8xl font-black leading-none mb-2">
+                <CountUp to={data.meta.points} />
               </div>
-              <div className="text-center">
-                 <p className="text-xs text-white/50 font-bold uppercase">Rank</p>
-                 <div className="flex items-center justify-center gap-1">
-                   <p className="text-xl font-bold tracking-tight">#{data.meta.rank.toLocaleString()}</p>
-                   <span className="text-lg">{data.meta.rankArrow === 'green' ? '↗' : '↘'}</span>
-                 </div>
-              </div>
+              <p className="text-gray-400 text-sm">Points</p>
+            </Card>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="text-center">
+                <p className="text-[10px] uppercase font-bold text-gray-500">Global Rank</p>
+                <p className="text-xl font-black mt-1">#{data.meta.rank.toLocaleString()}</p>
+              </Card>
+              <Card className="text-center flex items-center justify-center gap-2">
+                 <span className={`text-3xl ${data.meta.rankArrow === 'green' ? 'text-green-400' : 'text-red-500'}`}>
+                   {data.meta.rankArrow === 'green' ? '↗' : '↘'}
+                 </span>
+                 <p className="text-xs font-bold uppercase text-gray-400 leading-tight text-left">
+                   {data.meta.rankArrow === 'green' ? 'Green\nArrow' : 'Red\nArrow'}
+                 </p>
+              </Card>
             </div>
           </motion.div>
-        </SlideWrapper>
+        </Slide>
       )
     },
 
-    // 3. CAPTAINCY (Hero Card)
+    // 3. CAPTAINCY VERDICT
     {
       content: () => (
-        <SlideWrapper theme="gold">
-          <motion.p variants={fadeInUp} className="text-yellow-200 font-bold uppercase tracking-widest text-xs mb-6">The Armband</motion.p>
-          
-          <motion.div variants={fadeInUp} className="relative w-full max-w-xs aspect-[3/4] rounded-[2.5rem] bg-gradient-to-b from-yellow-500/20 to-orange-600/20 border border-yellow-400/30 backdrop-blur-md flex flex-col items-center justify-between p-8 shadow-[0_0_40px_rgba(234,179,8,0.2)]">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold tracking-tight leading-none mb-1">{data.captain.name}</h1>
-              <div className={`inline-block px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                data.captain.verdict === 'hero' ? 'bg-green-500 text-black' : 'bg-red-500 text-white'
-              }`}>
-                {data.captain.verdict}
-              </div>
-            </div>
+        <Slide>
+          <motion.div initial="hidden" animate="visible" className="w-full max-w-sm z-10 text-center">
+            <Label text="The Leader" color="text-yellow-500" />
+            
+            <Card className="!p-0 bg-gradient-to-br from-gray-800 to-black border-yellow-500/20">
+               {/* Hero Header */}
+               <div className="bg-yellow-500/10 p-6 border-b border-yellow-500/10">
+                 <h1 className="text-3xl font-black uppercase text-yellow-100">{data.captain.name}</h1>
+                 <p className="text-yellow-500 font-bold tracking-widest text-xs mt-1">CAPTAIN</p>
+               </div>
+               
+               {/* Points Display */}
+               <div className="p-8">
+                  <div className="text-7xl font-black text-white mb-2">
+                    <CountUp to={data.captain.totalPoints} />
+                  </div>
+                  <p className="text-gray-500 text-sm font-bold uppercase">Points Scored</p>
+               </div>
 
-            <div className="text-center">
-               <span className="text-[6rem] font-bold tracking-tighter leading-none text-yellow-300 drop-shadow-lg">
-                 <CountUp to={data.captain.totalPoints} />
-               </span>
-               <p className="text-yellow-100/60 font-bold text-sm -mt-2">POINTS</p>
-            </div>
-
-            <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-               <motion.div 
-                 initial={{ width: 0 }} 
-                 animate={{ width: `${Math.min(data.captain.totalPoints * 2, 100)}%` }} 
-                 className="h-full bg-yellow-400" 
-               />
-            </div>
+               {/* Verdict Footer */}
+               <div className={`p-4 font-black uppercase tracking-widest text-sm ${
+                 data.captain.verdict === 'hero' ? 'bg-green-500 text-black' : 
+                 data.captain.verdict === 'fail' ? 'bg-red-500 text-white' : 'bg-gray-700 text-white'
+               }`}>
+                 Verdict: {data.captain.verdict}
+               </div>
+            </Card>
           </motion.div>
-        </SlideWrapper>
+        </Slide>
       )
     },
 
-    // 4. TRANSFER (Nemesis / VS Style)
+    // 4. TRANSFER MARKET (The "Nemesis" Slide)
     data.transfer ? {
       content: () => (
-        <SlideWrapper theme="dark">
-           <motion.h2 variants={fadeInUp} className="text-white/50 font-bold uppercase tracking-widest text-xs mb-8">Transfer Market</motion.h2>
+        <Slide className="!bg-[#2a0a0a]"> {/* Dark Red Tint for Drama */}
+          <motion.div initial="hidden" animate="visible" className="w-full max-w-sm z-10 text-center">
+            <Label text="Transfer Dept" color="text-red-400" />
+            <h1 className="text-5xl font-black uppercase tracking-tighter mb-8 text-white">NEMESIS</h1>
 
-           <div className="flex w-full items-center justify-center gap-2 mb-8 relative">
-              {/* SOLD CARD */}
-              <motion.div variants={fadeInUp} className="flex-1 bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex flex-col items-center backdrop-blur-md">
-                 <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center text-xl mb-2">👋</div>
-                 <p className="text-[10px] font-bold text-red-300 uppercase">Sold</p>
-                 <p className="font-bold text-lg leading-tight text-center">{data.transfer.out.name}</p>
-                 <p className="text-3xl font-bold text-red-400 mt-1">{data.transfer.out.points}</p>
-              </motion.div>
+            <div className="relative flex items-center justify-center gap-2 mb-8">
+               {/* SOLD */}
+               <motion.div variants={fadeInUp} className="flex-1 bg-red-500/10 border border-red-500/30 rounded-2xl p-4 backdrop-blur-sm">
+                 <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-2 text-xl">👋</div>
+                 <p className="text-[10px] font-bold text-red-300 uppercase opacity-70">Sold</p>
+                 <p className="font-bold text-sm truncate">{data.transfer.out.name}</p>
+                 <p className="text-2xl font-black mt-1 text-red-100">{data.transfer.out.points}</p>
+               </motion.div>
 
-              <div className="absolute text-2xl font-black italic opacity-30 z-20">VS</div>
+               {/* VS Badge */}
+               <motion.div variants={scaleIn} className="z-20">
+                 <span className="text-4xl font-black italic text-red-600 opacity-60">VS</span>
+               </motion.div>
 
-              {/* BOUGHT CARD */}
-              <motion.div variants={fadeInUp} className="flex-1 bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex flex-col items-center backdrop-blur-md">
-                 <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center text-xl mb-2">🤝</div>
-                 <p className="text-[10px] font-bold text-green-300 uppercase">Bought</p>
-                 <p className="font-bold text-lg leading-tight text-center">{data.transfer.in.name}</p>
-                 <p className="text-3xl font-bold text-green-400 mt-1">{data.transfer.in.points}</p>
-              </motion.div>
-           </div>
+               {/* BOUGHT */}
+               <motion.div variants={fadeInUp} className="flex-1 bg-green-500/10 border border-green-500/30 rounded-2xl p-4 backdrop-blur-sm">
+                 <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-2 text-xl">🤝</div>
+                 <p className="text-[10px] font-bold text-green-300 uppercase opacity-70">Bought</p>
+                 <p className="font-bold text-sm truncate">{data.transfer.in.name}</p>
+                 <p className="text-2xl font-black mt-1 text-green-100">{data.transfer.in.points}</p>
+               </motion.div>
+            </div>
 
-           <motion.div variants={fadeInUp} className="px-6 py-2 bg-white/10 rounded-full backdrop-blur-xl border border-white/10">
-              <p className="font-bold text-lg">{data.transfer.verdict}</p>
-           </motion.div>
-        </SlideWrapper>
+            <Card className="!py-3 !px-6 inline-block bg-black/40 border-red-500/30">
+               <p className="font-bold text-lg uppercase tracking-widest text-red-100">{data.transfer.verdict}</p>
+            </Card>
+          </motion.div>
+        </Slide>
       )
-    } : { content: () => <SlideWrapper theme="dark">No Transfers</SlideWrapper> },
+    } : null,
 
-    // 5. BENCH REGRET (Split)
+    // 5. PEP ROULETTE (0 Mins) / OR / CHEAP BEAST
+    data.cardioKing ? {
+      content: () => (
+        <Slide>
+          <motion.div initial="hidden" animate="visible" className="w-full max-w-sm z-10 text-center">
+            <Label text="Scam Alert" color="text-orange-500" />
+            <motion.div variants={scaleIn} className="text-7xl mb-6">🤡</motion.div>
+            
+            <Card className="border-orange-500/30 bg-orange-500/5">
+              <h2 className="text-2xl font-black uppercase text-white mb-1">{data.cardioKing.name}</h2>
+              <div className="h-px w-full bg-orange-500/20 my-4"></div>
+              <div className="flex justify-between items-center px-4">
+                 <div className="text-left">
+                   <p className="text-xs font-bold uppercase text-gray-500">Minutes</p>
+                   <p className="text-3xl font-mono font-bold text-orange-400">{data.cardioKing.minutes}</p>
+                 </div>
+                 <div className="text-right">
+                   <p className="text-xs font-bold uppercase text-gray-500">Points</p>
+                   <p className="text-3xl font-mono font-bold text-white">{data.cardioKing.points}</p>
+                 </div>
+              </div>
+            </Card>
+            
+            <p className="mt-8 text-sm text-gray-500 uppercase tracking-widest font-bold">
+              Pep didn't even look at him.
+            </p>
+          </motion.div>
+        </Slide>
+      )
+    } : null,
+
+    // 6. BENCH PAIN (Split Screen)
     data.benchRegret ? {
       content: () => (
-        <div className="relative w-full h-full flex font-sans">
-           {/* Split BG */}
-           <div className="w-1/2 h-full bg-slate-900 relative overflow-hidden">
-              <div className="absolute inset-0 bg-noise opacity-30"></div>
-           </div>
-           <div className="w-1/2 h-full bg-orange-600 relative overflow-hidden">
-               <div className="absolute inset-0 bg-noise opacity-30"></div>
-           </div>
+        <div className="w-full h-full relative font-sans flex flex-col">
+          {/* Top Half (Dark) */}
+          <div className="flex-1 bg-[#1e293b] flex flex-col items-center justify-center p-6 relative">
+            <motion.div initial={{y:20, opacity:0}} animate={{y:0, opacity:1}} className="text-center z-10">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">You Started</p>
+              <h2 className="text-3xl font-black text-white mb-2">{data.benchRegret.started.name}</h2>
+              <p className="text-6xl font-black text-slate-500">{data.benchRegret.started.points}</p>
+            </motion.div>
+          </div>
 
-           {/* Content Overlay */}
-           <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-4">
-              <motion.h2 
-                 initial={{opacity:0, y:-20}} animate={{opacity:1, y:0}} 
-                 className="text-white font-black uppercase tracking-widest text-lg mb-8 drop-shadow-md"
-              >
-                Bench Regret
-              </motion.h2>
+          {/* Bottom Half (Orange) */}
+          <div className="flex-1 bg-[#ea580c] flex flex-col items-center justify-center p-6 relative">
+            <motion.div initial={{y:20, opacity:0}} animate={{y:0, opacity:1}} delay={0.2} className="text-center z-10">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-orange-200 mb-2">You Benched</p>
+              <h2 className="text-3xl font-black text-white mb-2">{data.benchRegret.benched.name}</h2>
+              <p className="text-6xl font-black text-white drop-shadow-md">{data.benchRegret.benched.points}</p>
+            </motion.div>
 
-              <motion.div 
-                initial={{scale: 0.9, opacity:0}} animate={{scale:1, opacity:1}} 
-                className="flex w-full bg-black/40 backdrop-blur-xl rounded-3xl overflow-hidden border border-white/10 shadow-2xl"
-              >
-                 {/* Left */}
-                 <div className="flex-1 p-6 flex flex-col items-center justify-center border-r border-white/10">
-                    <p className="text-[10px] font-bold uppercase text-slate-400 mb-2">Started</p>
-                    <p className="text-lg font-bold text-white text-center leading-tight mb-2">{data.benchRegret.started.name}</p>
-                    <p className="text-4xl font-bold text-slate-200">{data.benchRegret.started.points}</p>
-                 </div>
-                 {/* Right */}
-                 <div className="flex-1 p-6 flex flex-col items-center justify-center bg-orange-500/20">
-                    <p className="text-[10px] font-bold uppercase text-orange-200 mb-2">Benched</p>
-                    <p className="text-lg font-bold text-white text-center leading-tight mb-2">{data.benchRegret.benched.name}</p>
-                    <p className="text-4xl font-bold text-yellow-300">{data.benchRegret.benched.points}</p>
-                 </div>
-              </motion.div>
-
-              <motion.div 
-                 initial={{y:20, opacity:0}} animate={{y:0, opacity:1}} delay={0.3}
-                 className="mt-8 bg-black/60 px-6 py-3 rounded-full border border-orange-500/50 backdrop-blur-md"
-              >
-                 <p className="text-white font-bold text-sm">Cost you <span className="text-orange-400">{data.benchRegret.diff} pts</span></p>
-              </motion.div>
-           </div>
+            {/* Floating Badge */}
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black px-6 py-2 rounded-full border border-orange-500 shadow-xl z-20 whitespace-nowrap">
+              <p className="text-white font-bold text-sm uppercase tracking-widest">
+                Cost you <span className="text-orange-500">{data.benchRegret.diff} pts</span>
+              </p>
+            </div>
+          </div>
         </div>
       )
-    } : { content: () => <SlideWrapper theme="green">Bench Perfect</SlideWrapper> },
+    } : null,
 
-    // 6. FINAL SUMMARY
+    // 7. AUTO-SUB HERO (If applicable)
+    data.autoSub ? {
+      content: () => (
+        <Slide>
+          <motion.div initial="hidden" animate="visible" className="text-center z-10">
+             <Label text="Redemption" color="text-purple-400" />
+             <div className="text-7xl mb-4">🦸‍♂️</div>
+             <Card className="bg-purple-500/10 border-purple-500/30">
+               <p className="text-xs font-bold uppercase text-purple-300 mb-2">Auto-Sub Hero</p>
+               <h1 className="text-3xl font-black text-white">{data.autoSub.in.name}</h1>
+               <p className="text-6xl font-black text-purple-200 mt-2">{data.autoSub.in.points}<span className="text-xl">pts</span></p>
+             </Card>
+             <p className="mt-6 text-sm opacity-60 max-w-[200px] mx-auto">
+               You forgot to set your team. It worked perfectly.
+             </p>
+          </motion.div>
+        </Slide>
+      )
+    } : null,
+
+    // 8. FINAL SUMMARY
     {
       content: () => (
-        <SlideWrapper theme="default">
-           <motion.p variants={fadeInUp} className="text-white/50 font-bold uppercase tracking-widest text-xs mb-8">Summary</motion.p>
-           
-           <motion.h1 variants={fadeInUp} className="text-5xl font-black text-center leading-tight tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-purple-200 to-pink-200 mb-10">
-             {data.summary.type}
-           </motion.h1>
+        <Slide>
+          <motion.div initial="hidden" animate="visible" className="w-full max-w-sm z-10 text-center">
+            <Label text="The Verdict" />
+            
+            <h1 className="text-6xl font-black uppercase leading-none tracking-tighter mb-8 text-transparent bg-clip-text bg-gradient-to-br from-white via-gray-200 to-gray-500">
+              {data.summary.type}
+            </h1>
 
-           <motion.button
-              variants={fadeInUp}
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-white/5 p-4 rounded-xl">
+                 <p className="text-[10px] text-gray-500 uppercase font-bold">Points</p>
+                 <p className="text-2xl font-black">{data.meta.points}</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl">
+                 <p className="text-[10px] text-gray-500 uppercase font-bold">Bench</p>
+                 <p className="text-2xl font-black text-gray-400">{data.bench.totalPoints}</p>
+              </div>
+            </div>
+
+            <motion.button 
+              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/')}
-              className="bg-white text-black font-bold py-4 px-10 rounded-full shadow-xl tracking-tight text-lg"
-           >
-             Roast Another Team
-           </motion.button>
-        </SlideWrapper>
+              className="w-full bg-white text-black font-black py-4 rounded-full uppercase tracking-widest text-sm shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] transition-shadow"
+            >
+              Roast Another Team
+            </motion.button>
+          </motion.div>
+        </Slide>
       )
     }
 
-  ].filter(Boolean);
+  ].filter(Boolean); // Clean up null slides
 
   return (
     <div className="fixed inset-0 bg-[#000] flex justify-center items-center">
-      <div className="w-full h-full sm:max-w-[430px] sm:h-[88vh] sm:rounded-[40px] overflow-hidden shadow-[0_0_80px_rgba(100,100,100,0.1)] border-[8px] border-[#1a1a1a] relative bg-black">
+      <div className="w-full h-full sm:max-w-[430px] sm:h-[88vh] sm:rounded-[32px] overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.05)] border-[1px] border-white/10 relative bg-[#121212]">
         <Stories
           stories={stories}
           defaultInterval={6000}
